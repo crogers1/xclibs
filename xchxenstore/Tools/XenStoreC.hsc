@@ -129,9 +129,9 @@ processWatches h watch_map =
                Just l  -> tryPutMVar l () >> return () -- unlock watch
 
 -- hackish single global xenstore handle
-xsGlobal :: Xs
-{-# NOINLINE xsGlobal #-}
-xsGlobal = unsafePerformIO $ xsOpen
+--xsGlobal :: Xs
+--{-# NOINLINE xsGlobal #-}
+--xsGlobal = unsafePerformIO $ xsOpen
 
 withUTF8CStringLen :: String -> (CStringLen -> IO a) -> IO a
 withUTF8CStringLen s f = do
@@ -274,9 +274,8 @@ xsWaitFor' p pred = withXs $ \h -> xsWaitForH' h p pred
 xsDir :: String -> IO [String]
 xsDir p = withXs $ \h -> xsDirH h p
 
--- uses global handle
 withXs :: (Xs -> IO a) -> IO a
-withXs f = f xsGlobal
+withXs f = f =<< xsOpen
 
 ---------------
 -- PERMISSIONS

@@ -33,6 +33,7 @@ Library
                    , mtl
                    , unix
                    , ghc-prim
+                   , array
   Exposed-modules:   Network.DBus
                      Network.DBus.Actions
   Other-modules:     Network.DBus.IEEE754
