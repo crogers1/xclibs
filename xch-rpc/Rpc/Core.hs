@@ -33,6 +33,7 @@ module Rpc.Core
            , rpcCallOnce
            , rpcCallProxy
            , rpcRunParallel
+           , rpcRunSequential
            , rpcOnSignal
            , rpcOnSignalRemove
            , rpcOnSignalFrom
@@ -376,6 +377,17 @@ rpcRunParallel acts = do
       fork ctx action = do
         mv <- newEmptyMVar
         forkIO (putMVar mv =<< thaw ctx action)
+        return mv
+
+rpcRunSequential :: (FreezeIOM ctx i m, MonadRpc e m) => [m a] -> m [a]
+rpcRunSequential acts = do
+    mvars <- freeze $ \ctx -> mapM (sequent ctx) acts
+    mapM take mvars
+      where
+      take mv = (liftIO . takeMVar) mv >>= cont where
+      sequent ctx action = do
+        mv <- newEmptyMVar
+        putMVar mv =<< thaw ctx action
         return mv
 
 -- Split a list over an element
