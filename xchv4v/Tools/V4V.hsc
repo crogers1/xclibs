@@ -26,7 +26,7 @@ module Tools.V4V ( Addr (..)
 import Data.Word
 import qualified Data.ByteString as B
 import Data.ByteString.Internal ( createAndTrim )
-import Data.ByteString ( useAsCStringLen )
+import Data.ByteString.Unsafe ( unsafeUseAsCStringLen )
 import Control.Applicative
 import Control.Concurrent
 import Control.Monad
@@ -151,7 +151,7 @@ accept f =
 send :: Fd -> B.ByteString -> Int -> IO Int
 send f buf flags =
     fmap int $
-         useAsCStringLen buf $ \(ptr,sz) ->
+         unsafeUseAsCStringLen buf $ \(ptr,sz) ->
              throwErrnoIfMinus1RetryMayBlock "send"
              ( c_v4v_send (int f) (castPtr ptr) (int sz) (int flags) )
              ( moan f buf flags >> threadDelay (5 * 10^5) >> threadWaitWrite f )
