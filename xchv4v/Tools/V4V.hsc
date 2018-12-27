@@ -74,15 +74,15 @@ instance Storable Addr where
                      #{poke v4v_addr_t, domain} p (addrDomID v)
 
 -- subset of libv4v.h
-foreign import ccall "libv4v.h v4v_socket" c_v4v_socket    :: CInt -> IO CInt
-foreign import ccall "libv4v.h v4v_close" c_v4v_close      :: CInt -> IO CInt
-foreign import ccall "libv4v.h v4v_bind" c_v4v_bind        :: CInt -> Ptr Addr -> CInt -> IO CInt
-foreign import ccall "libv4v.h v4v_connect" c_v4v_connect  :: CInt -> Ptr Addr -> IO CInt
-foreign import ccall "libv4v.h v4v_listen" c_v4v_listen    :: CInt -> CInt -> IO CInt
-foreign import ccall "libv4v.h v4v_accept" c_v4v_accept    :: CInt -> Ptr Addr -> IO CInt
-foreign import ccall "libv4v.h v4v_send" c_v4v_send        :: CInt -> Ptr Word8 -> CULong -> CInt -> IO CLong
-foreign import ccall "libv4v.h v4v_recv" c_v4v_recv        :: CInt -> Ptr Word8 -> CULong -> CInt -> IO CLong
-foreign import ccall "libv4v.h v4v_getsockopt" c_v4v_getsockopt :: CInt -> CInt -> CInt -> Ptr () -> Ptr Int -> IO Int
+foreign import ccall "libv4v.h v4v_socket" c_v4v_socket    :: CInt32 -> IO CInt32
+foreign import ccall "libv4v.h v4v_close" c_v4v_close      :: CInt32 -> IO CInt32
+foreign import ccall "libv4v.h v4v_bind" c_v4v_bind        :: CInt32 -> Ptr Addr -> CInt32 -> IO CInt32
+foreign import ccall "libv4v.h v4v_connect" c_v4v_connect  :: CInt32 -> Ptr Addr -> IO CInt32
+foreign import ccall "libv4v.h v4v_listen" c_v4v_listen    :: CInt32 -> CInt -> IO CInt32
+foreign import ccall "libv4v.h v4v_accept" c_v4v_accept    :: CInt32 -> Ptr Addr -> IO CInt32
+foreign import ccall "libv4v.h v4v_send" c_v4v_send        :: CInt32 -> Ptr Word8 -> CULong -> CInt32 -> IO CLong
+foreign import ccall "libv4v.h v4v_recv" c_v4v_recv        :: CInt32 -> Ptr Word8 -> CULong -> CInt32 -> IO CLong
+foreign import ccall "libv4v.h v4v_getsockopt" c_v4v_getsockopt :: CInt32 -> CInt32 -> CInt32 -> Ptr () -> Ptr Int32 -> IO Int32
 
 int :: (Integral a, Num b) => a -> b
 int = fromIntegral
@@ -106,7 +106,7 @@ maybeBindClient :: Fd -> Addr -> IO ()
 maybeBindClient f addr = do
     do
        envAddend <- getEnv "V4V_CLIENT_PORT_ADDEND"
-       let addend = read envAddend::Int
+       let addend = read envAddend::Int32
        bind f (Addr (addrPort addr + addend) 0x7FFF) (addrDomID addr)
        return ()
     `Control.Exception.catch` \e -> do
@@ -135,7 +135,7 @@ connect f addr = do
                         ioError ( errnoToIOError "connect" (Errno (fromIntegral err)) Nothing Nothing )
         in connect_loop
 
-listen :: Fd -> Int -> IO ()
+listen :: Fd -> Int32 -> IO ()
 listen f backlog = do
     throwErrnoIfMinus1 "listen" $ c_v4v_listen (int f) (int backlog)
     return ()
@@ -148,7 +148,7 @@ accept f =
            addr <- peek addr_p
            return (int f', addr)
 
-send :: Fd -> B.ByteString -> Int -> IO Int
+send :: Fd -> B.ByteString -> Int32 -> IO Int32
 send f buf flags =
     fmap int $
          unsafeUseAsCStringLen buf $ \(ptr,sz) ->
@@ -156,7 +156,7 @@ send f buf flags =
              ( c_v4v_send (int f) (castPtr ptr) (int sz) (int flags) )
              ( moan f buf flags >> threadDelay (5 * 10^5) >> threadWaitWrite f )
 
-moan :: Fd -> B.ByteString -> Int -> IO ()
+moan :: Fd -> B.ByteString -> Int32 -> IO ()
 moan fd buf flags = do
     warn $ "ALERT! EAGAIN trying to send over v4v fd=" ++ show fd
              ++ " flags=" ++ show flags
@@ -164,7 +164,7 @@ moan fd buf flags = do
              ++ " data follows:"
     warn $ show buf
 
-recv :: Fd -> Int -> Int -> IO B.ByteString
+recv :: Fd -> Int32 -> Int32 -> IO B.ByteString
 recv f sz flags =
     createAndTrim sz $ \ptr ->
         fmap int $
@@ -172,17 +172,17 @@ recv f sz flags =
              ( c_v4v_recv (int f) (castPtr ptr) (int sz) (int flags) )
              ( threadWaitRead f )
 
-getsockopt :: Fd -> SocketOption -> IO Int
+getsockopt :: Fd -> SocketOption -> IO Int32
 getsockopt fd option | option == so_error =
     fmap fromIntegral $
     alloca $ \buffer ->
     alloca $ \len_buffer ->
-        do poke len_buffer (sizeOf $ (undefined :: CInt))
+        do poke len_buffer (sizeOf $ (undefined :: CInt32))
            throwErrnoIfMinus1 "getsockopt" ( c_v4v_getsockopt
                                              (int fd) 
                                              (socket_level sol_socket)
                                              (socket_option so_error)
                                              (castPtr buffer)
                                              len_buffer )
-           peek ( buffer :: Ptr CInt )
+           peek ( buffer :: Ptr CInt32 )
 getsockopt fd _ = error "unsupported option type"

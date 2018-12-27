@@ -68,34 +68,34 @@ foreign import ccall "xs.h xs_daemon_close"
         c_xs_daemon_close :: XsHandle -> IO ()
 
 foreign import ccall "xs.h xs_read"
-        c_xs_read :: XsHandle -> CUInt -> CString -> Ptr CUInt -> IO CString
+        c_xs_read :: XsHandle -> CUInt32 -> CString -> Ptr CUInt32 -> IO CString
 
 foreign import ccall "xs.h xs_write"
-        c_xs_write :: XsHandle -> CUInt -> CString -> CString -> CUInt -> IO CUInt
+        c_xs_write :: XsHandle -> CUInt32 -> CString -> CString -> CUInt32 -> IO CUInt32
 
 foreign import ccall "xs.h xs_rm"
-        c_xs_rm :: XsHandle -> CUInt -> CString -> IO CUInt
+        c_xs_rm :: XsHandle -> CUInt32 -> CString -> IO CUInt32
 
 foreign import ccall "xs.h xs_watch"
-        c_xs_watch :: XsHandle -> CString -> CString -> IO CInt
+        c_xs_watch :: XsHandle -> CString -> CString -> IO CInt32
 
 foreign import ccall "xs.h xs_unwatch"
-        c_xs_unwatch :: XsHandle -> CString -> CString -> IO CInt
+        c_xs_unwatch :: XsHandle -> CString -> CString -> IO CInt32
 
 foreign import ccall "xs.h xs_fileno"
-        c_xs_fileno :: XsHandle -> IO CInt
+        c_xs_fileno :: XsHandle -> IO CInt32
 
 foreign import ccall "xs.h xs_read_watch"
-        c_xs_read_watch :: XsHandle -> Ptr CUInt -> IO (Ptr CString)
+        c_xs_read_watch :: XsHandle -> Ptr CUInt32 -> IO (Ptr CString)
 
 foreign import ccall "xs.h xs_get_permissions"
-        c_xs_get_permissions :: XsHandle -> CInt -> CString -> Ptr CInt -> IO (Ptr Permission)
+        c_xs_get_permissions :: XsHandle -> CInt32 -> CString -> Ptr CInt32 -> IO (Ptr Permission)
 
 foreign import ccall "xs.h xs_set_permissions"
-        c_xs_set_permissions :: XsHandle -> CInt -> CString -> Ptr Permission -> CInt -> IO CInt
+        c_xs_set_permissions :: XsHandle -> CInt32 -> CString -> Ptr Permission -> CInt32 -> IO CInt32
 
 foreign import ccall "xs.h xs_directory"
-        c_xs_directory :: XsHandle -> CInt -> CString -> Ptr CUInt -> IO (Ptr CString)
+        c_xs_directory :: XsHandle -> CInt32 -> CString -> Ptr CUInt32 -> IO (Ptr CString)
 
 foreign import ccall "read_watch_token"
         c_read_watch_token :: XsHandle -> IO CString
@@ -288,16 +288,16 @@ xsPERM_ENOENT_OK = 4
 xsPERM_OWNER = 8
 
 data PermissionFlag = PermRead | PermWrite | PermEnoentOk | PermOwner
-data Permission = Permission !Int [PermissionFlag]
+data Permission = Permission !Int32 [PermissionFlag]
 
-unpackPerms :: CInt -> [PermissionFlag]
+unpackPerms :: CInt32 -> [PermissionFlag]
 unpackPerms f | (f .&. xsPERM_READ) /= 0 = PermRead : unpackPerms (f .&. xsPERM_READ)
               | (f .&. xsPERM_WRITE) /= 0 = PermWrite : unpackPerms (f .&. xsPERM_WRITE)
               | (f .&. xsPERM_ENOENT_OK) /= 0 = PermEnoentOk : unpackPerms (f .&. xsPERM_ENOENT_OK)
               | (f .&. xsPERM_OWNER) /= 0 = PermOwner : unpackPerms (f .&. xsPERM_OWNER)
               | otherwise = []
 
-packPerms :: [PermissionFlag] -> CInt
+packPerms :: [PermissionFlag] -> CInt32
 packPerms [] = 0
 packPerms (PermRead : xs) = xsPERM_READ .|. packPerms xs
 packPerms (PermWrite : xs) = xsPERM_WRITE .|. packPerms xs
@@ -305,9 +305,9 @@ packPerms (PermEnoentOk : xs) = xsPERM_ENOENT_OK .|. packPerms xs
 packPerms (PermOwner : xs) = xsPERM_OWNER .|. packPerms xs
 
 instance Storable Permission where
-    alignment _ = alignment ( undefined :: CUInt )
+    alignment _ = alignment ( undefined :: CUInt32 )
     sizeOf    _ = #{size xs_permissions_t}
-    peek p      = do id <- #{peek xs_permissions_t, id} p :: IO CUInt
+    peek p      = do id <- #{peek xs_permissions_t, id} p :: IO CUInt32
                      flags <- #{peek xs_permissions_t, perms} p
                      return $ Permission (fromIntegral id) (unpackPerms flags)
     poke p v    = do let Permission id flags = v
