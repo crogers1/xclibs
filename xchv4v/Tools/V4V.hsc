@@ -55,7 +55,7 @@ newtype SocketOption = SocketOption { socket_option :: CInt } deriving Eq
 #{enum SocketOption, SocketOption
  , so_error = SO_ERROR }
 
-type DomID = Int
+type DomID = Int32
 
 data Addr = Addr { addrPort  :: !Int
                  , addrDomID :: !DomID } deriving Show
@@ -135,7 +135,7 @@ connect f addr = do
                         ioError ( errnoToIOError "connect" (Errno (fromIntegral err)) Nothing Nothing )
         in connect_loop
 
-listen :: Fd -> Int -> IO ()
+listen :: Fd -> Int32 -> IO ()
 listen f backlog = do
     throwErrnoIfMinus1 "listen" $ c_v4v_listen (int f) (int backlog)
     return ()
@@ -148,7 +148,7 @@ accept f =
            addr <- peek addr_p
            return (int f', addr)
 
-send :: Fd -> B.ByteString -> Int -> IO Int
+send :: Fd -> B.ByteString -> Int32 -> IO Int32
 send f buf flags =
     fmap int $
          unsafeUseAsCStringLen buf $ \(ptr,sz) ->
@@ -156,7 +156,7 @@ send f buf flags =
              ( c_v4v_send (int f) (castPtr ptr) (int sz) (int flags) )
              ( moan f buf flags >> threadDelay (5 * 10^5) >> threadWaitWrite f )
 
-moan :: Fd -> B.ByteString -> Int -> IO ()
+moan :: Fd -> B.ByteString -> Int32 -> IO ()
 moan fd buf flags = do
     warn $ "ALERT! EAGAIN trying to send over v4v fd=" ++ show fd
              ++ " flags=" ++ show flags
@@ -164,7 +164,7 @@ moan fd buf flags = do
              ++ " data follows:"
     warn $ show buf
 
-recv :: Fd -> Int -> Int -> IO B.ByteString
+recv :: Fd -> Int -> Int32 -> IO B.ByteString
 recv f sz flags =
     createAndTrim sz $ \ptr ->
         fmap int $
@@ -172,7 +172,7 @@ recv f sz flags =
              ( c_v4v_recv (int f) (castPtr ptr) (int sz) (int flags) )
              ( threadWaitRead f )
 
-getsockopt :: Fd -> SocketOption -> IO Int
+getsockopt :: Fd -> SocketOption -> IO Int32
 getsockopt fd option | option == so_error =
     fmap fromIntegral $
     alloca $ \buffer ->

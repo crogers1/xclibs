@@ -288,7 +288,7 @@ xsPERM_ENOENT_OK = 4
 xsPERM_OWNER = 8
 
 data PermissionFlag = PermRead | PermWrite | PermEnoentOk | PermOwner
-data Permission = Permission !Int [PermissionFlag]
+data Permission = Permission !Int32 [PermissionFlag]
 
 unpackPerms :: CInt -> [PermissionFlag]
 unpackPerms f | (f .&. xsPERM_READ) /= 0 = PermRead : unpackPerms (f .&. xsPERM_READ)
